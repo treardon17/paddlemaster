@@ -1,5 +1,7 @@
 const Servo = require('./servo');
 const Madrone = require('madronejs').default;
+const express = require('express');
+const ip = require('ip');
 
 const servoConfig = { minRange: 500, maxRange: 2500 };
 const YES_ANGLE = 180;
@@ -15,19 +17,65 @@ const wait = (time) => new Promise((resolve) => {
 module.exports = Madrone.Model.create({
   upServo: undefined,
   answerServo: undefined,
-  waitTime: 5000,
+  waitTime: undefined,
+  port: undefined,
+  serverApp: undefined,
+  busy: false,
 
-  $init() {
-    this.start();
+  get ipAddress() {
+    return ip.address();
   },
 
-  async start() {
+  $init({ waitTime, port } = {}) {
+    this.waitTime = waitTime ?? 5000;
+    this.port = port ?? 3000;
+  },
+
+  start() {
+    return Promise.all([this.startServos(), this.startServer()]);
+  },
+
+  async startServer() {
+    this.serverApp = express();
+    this.serverApp.use(express.urlencoded({ extended: true }));
+    this.serverApp.use(express.json());
+
+    this.serverApp.post('/answer', (req, res) => {
+      if (this.busy) {
+        res.send('busy');
+      } else {
+        this.handleAnswer(req.body);
+        res.send('success');
+      }
+    });
+
+    this.serverApp.listen(this.port, () => {
+      console.log(`Paddlemaster listening http://${this.ipAddress}:${this.port}`);
+    });
+  },
+
+  async startServos() {
     try {
       this.answerServo = Servo.create({ channel: 0, startAngle: NEUTRAL_ANGLE, ...servoConfig });
       this.upServo = Servo.create({ channel: 1, startAngle: DOWN_ANGLE, ...servoConfig });
       await Promise.all([this.answerServo.start(), this.upServo.start()]);
     } catch (e) {
       console.error('error:', e);
+    }
+  },
+
+  async handleAnswer({ value, waitTime } = {}) {
+    try {
+      this.busy = true;
+      if (value === true) {
+        await this.answerYes(waitTime);
+      } else if (value === false) {
+        await this.answerNo(waitTime);
+      }
+    } catch (e) {
+      console.error('Could not handle answer', e);
+    } finally {
+      this.busy = false;
     }
   },
 
@@ -41,17 +89,17 @@ module.exports = Madrone.Model.create({
     await this.upServo.setAngle(UP_ANGLE);
   },
 
-  async answerYes() {
+  async answerYes(waitTime) {
     await this.goUp();
     await this.answerServo.setAngle(YES_ANGLE);
-    await wait(this.waitTime);
+    await wait(waitTime ?? this.waitTime);
     await this.goDown();
   },
 
-  async answerNo() {
+  async answerNo(waitTime) {
     await this.goUp();
     await this.answerServo.setAngle(NO_ANGLE);
-    await wait(this.waitTime);
+    await wait(waitTime ?? this.waitTime);
     await this.goDown();
   }
 });
