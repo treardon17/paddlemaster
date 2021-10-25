@@ -13,11 +13,11 @@ module.exports = Madrone.Model.create({
   active: false,
   instructionQueue: [],
 
-  $init({ channel, startPos, minRange, maxRange, driverOptions } = {}) {
+  $init({ channel, startAngle, minRange, maxRange, driverOptions } = {}) {
     this.channel = channel;
     this.minRange = minRange;
     this.maxRange = maxRange;
-    this.startPos = this.getAngle(startPos ?? this.minRange);
+    this.startPos = this.getAngle(startAngle ?? this.minRange);
     this.driverOptions = driverOptions || {
       i2c: i2cBus.openSync(1),
       address: 0x40,

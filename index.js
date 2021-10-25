@@ -1,32 +1,39 @@
 const Servo = require('./servo');
-
-const servoConfig = { minRange: 500, maxRange: 2500 };
+const Paddlemaster = require('./paddlemaster');
 
 async function start() {
-  const answerServo = Servo.create({ channel: 0, ...servoConfig });
-  const upServo = Servo.create({ channel: 1, ...servoConfig });
+  const paddlemaster = Paddlemaster.create();
 
-  try {
-    await Promise.all([answerServo.start(), upServo.start()]);
+  await paddlemaster.start();
 
-    // down/neutral
-    await answerServo.setAngle(90);
-    await upServo.setAngle(80);
+  // await paddlemaster.goDown();
 
-    // up
-    await upServo.setAngle(170);
+  await paddlemaster.answerNo();
 
-    // yes
-    await answerServo.setAngle(180);
-    // no
-    await answerServo.setAngle(0);
+  // const answerServo = Servo.create({ channel: 0, ...servoConfig });
+  // const upServo = Servo.create({ channel: 1, ...servoConfig });
 
-    // down/neutral
-    await answerServo.setAngle(90);
-    await upServo.setAngle(80);
-  } catch (e) {
-    console.error('error:', e);
-  }
+  // try {
+  //   await Promise.all([answerServo.start(), upServo.start()]);
+
+  //   // down/neutral
+  //   await answerServo.setAngle(90);
+  //   await upServo.setAngle(80);
+
+  //   // up
+  //   await upServo.setAngle(170);
+
+  //   // yes
+  //   await answerServo.setAngle(180);
+  //   // no
+  //   await answerServo.setAngle(0);
+
+  //   // down/neutral
+  //   await answerServo.setAngle(90);
+  //   await upServo.setAngle(80);
+  // } catch (e) {
+  //   console.error('error:', e);
+  // }
 }
 
 start();
